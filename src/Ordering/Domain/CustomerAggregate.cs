@@ -46,11 +46,21 @@ namespace Ordering.Domain
 
         public void Remove()
         {
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - customer-aggregate {_id} called on to remove"
+            );
+
             if (!_created)
             {
+                Console.WriteLine(
+                    $@"{DateTime.UtcNow} - customer-aggregate {_id} thowing exception on remove"
+                );
                 throw new Exception("cannot remove a customer that does not exist");
             }
 
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - customer-aggregate {_id} removing"
+            );
             Apply(
                 new CustomerRemoved
                 {
