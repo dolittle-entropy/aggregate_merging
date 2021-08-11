@@ -3,10 +3,10 @@ using Dolittle.SDK.Events;
 
 namespace Ordering.Events.Orders
 {
-    [EventType("C9E07A06-2566-4012-ABF9-7EF934829604")]
-    public class OrderCreated
+    [EventType("E66003EA-A6EB-45F6-AC74-5A6FB0B51721")]
+    public class OrderCancelled
     {
-        public OrderCreated(Guid orderId, Guid customerId)
+        public OrderCancelled(Guid orderId, Guid customerId)
         {
             OrderId = orderId;
             CustomerId = customerId;

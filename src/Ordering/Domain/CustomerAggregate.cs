@@ -35,12 +35,11 @@ namespace Ordering.Domain
             );
 
             Apply(
-                new CustomerCreated
-                {
-                    CustomerId = _id,
-                    Name = name,
-                    Email = email
-                }
+                new CustomerCreated(
+                    customerId: _id,
+                    name: name,
+                    email: email
+                )
             );
         }
 
@@ -62,10 +61,9 @@ namespace Ordering.Domain
                 $@"{DateTime.UtcNow} - customer-aggregate {_id} removing"
             );
             Apply(
-                new CustomerRemoved
-                {
-                    CustomerId = _id
-                }
+                new CustomerRemoved(
+                    customerId: _id
+                )
             );
         }
 
