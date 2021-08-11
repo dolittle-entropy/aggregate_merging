@@ -28,6 +28,25 @@ namespace Ordering
                 .Perform(customer =>
                     customer.Create("some name", "some@test.com")
                 );
+            client
+                .AggregateOf<CustomerAggregate>(
+                    eventSource: Guid.NewGuid(),
+                    buildEventStore: _ => _.ForTenant(TenantId.Development))
+                .Perform(customer =>
+                    customer.Create("other customer name", "other@test.com")
+                );
+
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - should get an exception when trying to create again"
+            );
+            client
+                .AggregateOf<CustomerAggregate>(
+                    eventSource: clientId,
+                    buildEventStore: _ => _.ForTenant(TenantId.Development))
+                .Perform(customer =>
+                    customer.Create("should fail", "some.other@test.com")
+
+                );
 
             Console.WriteLine(
                 $@"{DateTime.UtcNow} - starting the client (i.e. letting event handlers run)"

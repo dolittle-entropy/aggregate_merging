@@ -19,10 +19,20 @@ namespace Ordering.Domain
 
         public void Create(string name, string email)
         {
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - customer-aggregate {_id} called on to create"
+            );
             if (_created)
             {
+                Console.WriteLine(
+                    $@"{DateTime.UtcNow} - customer-aggregate {_id} thowing exception on create"
+                );
                 throw new Exception("cannot create an existing customer");
             }
+
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - customer-aggregate {_id} creating {name}"
+            );
 
             Apply(
                 new CustomerCreated
@@ -51,11 +61,17 @@ namespace Ordering.Domain
 
         void On(CustomerCreated evt)
         {
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - customer-aggregate {_id} handling customer-created"
+            );
             _created = true;
         }
 
         void On(CustomerRemoved evt)
         {
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - customer-aggregate {_id} handling customer-removed"
+            );
             _created = false;
         }
     }
