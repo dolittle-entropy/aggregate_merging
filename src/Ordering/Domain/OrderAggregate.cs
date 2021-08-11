@@ -58,6 +58,10 @@ namespace Ordering.Domain
                 throw new Exception("cannot add items to an abandoned order");
             }
 
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - order {_id} adding item {productId} {productName}"
+            );
+
             Apply(
                 new ItemAddedToOrder(
                     orderId: _id,
@@ -80,6 +84,10 @@ namespace Ordering.Domain
             {
                 throw new Exception("cannot remove item that is not on the order");
             }
+
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - order {_id} removing item {productId}"
+            );
 
             Apply(
                 new ItemRemovedFromOrder(

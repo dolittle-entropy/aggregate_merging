@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Dolittle.SDK.Events;
 using Dolittle.SDK.Events.Handling;
 using Ordering.Events.Customers;
+using Ordering.Events.Orders;
 
 namespace Ordering.Read
 {
@@ -25,6 +26,5 @@ namespace Ordering.Read
 
             return Task.CompletedTask;
         }
-
     }
 }

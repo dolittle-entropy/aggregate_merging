@@ -18,9 +18,8 @@ namespace Ordering
             Console.WriteLine($@"{DateTime.UtcNow} - starting the client");
             var client = Client
                 .ForMicroservice("24D20B3F-3147-414D-8F99-DE186F6D50A4")
-                .WithEventTypes(_ => _.Register<CustomerCreated>())
-                .WithEventTypes(_ => _.Register<CustomerRemoved>())
-                .WithEventHandlers(_ => _.RegisterEventHandler<CustomerEventHandler>())
+                .WithEventTypes(_ => _.RegisterAllFrom(typeof(CustomerCreated).Assembly))
+                .WithEventHandlers(_ => _.RegisterAllFrom(typeof(CustomerEventHandler).Assembly))
                 .Build();
 
             Console.WriteLine($@"{DateTime.UtcNow} - creating a customer");
@@ -70,6 +69,28 @@ namespace Ordering
                 .AggregateOf<CustomerAggregate>(customerTwoId, _ => _.ForTenant(TenantId.Development))
                 .Perform(
                     _ => _.Remove()
+                );
+
+            var orderId = Guid.NewGuid();
+            client
+                .AggregateOf<OrderAggregate>(orderId, _=> _.ForTenant(TenantId.Development))
+                .Perform(
+                    _ => _.Create(customerId)
+                );
+            client
+                .AggregateOf<OrderAggregate>(orderId, _=> _.ForTenant(TenantId.Development))
+                .Perform(
+                    _ => _.AddItem(Guid.NewGuid(), "kaviar", 13)
+                );
+            client
+                .AggregateOf<OrderAggregate>(orderId, _=> _.ForTenant(TenantId.Development))
+                .Perform(
+                    _ => _.AddItem(Guid.NewGuid(), "ost", 44)
+                );
+            client
+                .AggregateOf<OrderAggregate>(orderId, _=> _.ForTenant(TenantId.Development))
+                .Perform(
+                    _ => _.RemoveItem(Guid.NewGuid())
                 );
 
             Console.WriteLine(
