@@ -18,6 +18,11 @@ to do this the customer must now know about the orders. the methods and control 
 the orders-aggregate must therefore move to the customer-aggregate so it can abandon any created
 orders when a new order is created.
 
+## attempt: aggregate retires itself with state event
+the aggregate that's retiring sends out an event that it has gone with its internal state, and
+the aggregate that's taking over has to somehow get that event as one of its events and store the
+state.
+
 ## how to run
 run the following command to start the runtime in docker
 
