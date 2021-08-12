@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dolittle.SDK.Events;
+using Ordering.Events.AggregateMerging;
 using Ordering.Events.Orders;
 
 namespace Ordering.Domain
@@ -140,7 +141,7 @@ namespace Ordering.Domain
             );
         }
 
-        public void On(OrderAggregateRetired evt)
+        public void On(OrderAggregateStateRehydrated evt)
         {
             _customerId = evt.CustomerId;
             _items = evt.Items;

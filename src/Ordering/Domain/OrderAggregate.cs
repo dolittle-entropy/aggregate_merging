@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Dolittle.SDK.Aggregates;
 using Dolittle.SDK.Events;
+using Ordering.Events.AggregateMerging;
 using Ordering.Events.Orders;
 
 namespace Ordering.Domain

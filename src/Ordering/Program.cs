@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Reflection;
-using Dolittle.Runtime.Events.Contracts;
 using Dolittle.SDK;
-using Dolittle.SDK.Events.Store;
-using Dolittle.SDK.Events.Store.Builders;
 using Dolittle.SDK.Tenancy;
 using Ordering.Domain;
 using Ordering.Events.Customers;
@@ -72,6 +68,8 @@ namespace Ordering
                 );
 
             var orderId = Guid.NewGuid();
+
+            // all of these are now marked as obsolete and will not work
             client
                 .AggregateOf<OrderAggregate>(orderId, _=> _.ForTenant(TenantId.Development))
                 .Perform(
