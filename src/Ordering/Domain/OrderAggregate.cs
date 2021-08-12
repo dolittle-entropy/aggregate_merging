@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Dolittle.SDK.Aggregates;
 using Dolittle.SDK.Events;
+using Ordering.Events.AggregateMerging;
 using Ordering.Events.Orders;
 
 namespace Ordering.Domain
@@ -26,127 +27,17 @@ namespace Ordering.Domain
             _id = id;
         }
 
-        public void Create(Guid customerId)
+        public void Retire()
         {
-            if (_created)
-            {
-                throw new Exception("Already created order");
-            }
-
             Apply(
-                new OrderCreated(
-                    orderId: _id,
-                    customerId: customerId
-                )
-            );
-        }
-
-        public void AddItem(Guid productId, string productName, decimal price)
-        {
-            if (!_created)
-            {
-                throw new Exception("cannot add item to order that does not exist");
-            }
-
-            if (_placed)
-            {
-                throw new Exception("cannot add item to order after placing the order");
-            }
-
-            if (_abandoned)
-            {
-                throw new Exception("cannot add items to an abandoned order");
-            }
-
-            Console.WriteLine(
-                $@"{DateTime.UtcNow} - order {_id} adding item {productId} {productName}"
-            );
-
-            Apply(
-                new ItemAddedToOrder(
+                new OrderAggregateRetired(
                     orderId: _id,
                     customerId: _customerId,
-                    productId: productId,
-                    productName: productName,
-                    price: price
-                )
-            );
-        }
-
-        public void RemoveItem(Guid productId)
-        {
-            if (_placed)
-            {
-                throw new Exception("cannot remove item from order after placing the order");
-            }
-
-            if (!_items.Contains(productId))
-            {
-                throw new Exception("cannot remove item that is not on the order");
-            }
-
-            Console.WriteLine(
-                $@"{DateTime.UtcNow} - order {_id} removing item {productId}"
-            );
-
-            Apply(
-                new ItemRemovedFromOrder(
-                    orderId: _id,
-                    customerId: _customerId,
-                    productId: productId
-                )
-            );
-        }
-
-        public void Place()
-        {
-            if (!_items.Any())
-            {
-                throw new Exception("cannot place empty order");
-            }
-
-            if (_placed)
-            {
-                throw new Exception("cannot place an order again");
-            }
-
-            Apply(
-                new OrderPlaced(
-                    orderId: _id,
-                    customerId: _customerId
-                )
-            );
-        }
-
-        public void Cancel()
-        {
-            if (!_placed)
-            {
-                throw new Exception("cannot cancel order before placing - abandon it instead");
-            }
-
-            Apply(
-                new OrderCancelled(
-                    orderId: _id,
-                    customerId: _customerId
-                )
-            );
-        }
-        public void Abandon()
-        {
-            if (!_created)
-            {
-                throw new Exception("cannot abandon non-existing order");
-            }
-            if (_placed)
-            {
-                throw new Exception("cannot abandon order after placing - cancel it instead");
-            }
-
-            Apply(
-                new OrderAbandoned(
-                    orderId: _id,
-                    customerId: _customerId
+                    items: _items,
+                    created: _created,
+                    placed: _placed,
+                    cancelled: _cancelled,
+                    abandoned: _abandoned
                 )
             );
         }

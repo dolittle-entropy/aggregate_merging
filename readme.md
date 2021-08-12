@@ -18,6 +18,9 @@ to do this the customer must now know about the orders. the methods and control 
 the orders-aggregate must therefore move to the customer-aggregate so it can abandon any created
 orders when a new order is created.
 
+## attempt: minimal with retirement
+having gotten a retirement to work - this will be an attempt at making the minimal changes
+
 ## how to run
 run the following command to start the runtime in docker
 
