@@ -17,6 +17,8 @@ namespace Ordering.Domain
 
         IDictionary<Guid, OrderState> _orders = new Dictionary<Guid, OrderState>();
 
+        Guid _activeOrder = default;
+
         public CustomerAggregate(EventSourceId id) : base(id)
         {
             _id = id;
@@ -111,6 +113,13 @@ namespace Ordering.Domain
                 );
                 throw new Exception("cannot create order on non-existing customer");
             }
+            if (_activeOrder != default)
+            {
+                Console.WriteLine(
+                    $@"{DateTime.UtcNow} - customer already has an active order"
+                );
+                throw new Exception("customer can only have one active order");
+            }
 
             var order = new OrderState(orderId);
             Apply(order.Create(_id));
@@ -148,14 +157,14 @@ namespace Ordering.Domain
             );
         }
 
-        public void Cancel(Guid orderId)
+        public void CancelOrder(Guid orderId)
         {
             Apply(
                 GetOrder(orderId).Cancel()
             );
         }
 
-        public void Abandon(Guid orderId)
+        public void AbandonOrder(Guid orderId)
         {
             Apply(
                 GetOrder(orderId).Abandon()
@@ -202,6 +211,7 @@ namespace Ordering.Domain
             var orderState = new OrderState(evt.OrderId);
             orderState.On(evt);
             _orders[evt.OrderId] = orderState;
+            _activeOrder = evt.OrderId;
         }
 
         void On(ItemAddedToOrder evt)
@@ -217,16 +227,19 @@ namespace Ordering.Domain
         void On(OrderPlaced evt)
         {
             GetOrder(evt.OrderId).On(evt);
+            _activeOrder = default;
         }
 
         void On(OrderCancelled evt)
         {
             GetOrder(evt.OrderId).On(evt);
+            _activeOrder = default;
         }
 
         void On(OrderAbandoned evt)
         {
             GetOrder(evt.OrderId).On(evt);
+            _activeOrder = default;
         }
     }
 }

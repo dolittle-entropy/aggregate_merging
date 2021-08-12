@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System;
+﻿using System;
 using Dolittle.SDK;
 using Dolittle.SDK.Events.Store;
 using Dolittle.SDK.Events.Store.Builders;
@@ -7,7 +6,6 @@ using Dolittle.SDK.Tenancy;
 using Ordering.Domain;
 using Ordering.Events.Customers;
 using Ordering.Read;
-using Dolittle.SDK.Events;
 using System.Threading.Tasks;
 using Dolittle.SDK.Aggregates;
 
@@ -15,16 +13,17 @@ namespace Ordering
 {
     class Program
     {
-        public static Client _client { get; private set; }
+        public static Client DolitteClient { get; private set; }
 
         static async Task Main(string[] args)
         {
-            _client = Client
+            DolitteClient = Client
                 .ForMicroservice("24D20B3F-3147-414D-8F99-DE186F6D50A4")
                 .WithEventTypes(_ => _.RegisterAllFrom(typeof(CustomerCreated).Assembly))
-                .WithEventHandlers(_ => _.RegisterAllFrom(typeof(CustomerEventHandler).Assembly))
+                .WithEventHandlers(_ =>
+                    _.RegisterAllFrom(typeof(CustomerEventHandler).Assembly)
+                )
                 .Build();
-            Console.WriteLine();
 
             var customerId = Guid.NewGuid();
 
@@ -42,8 +41,26 @@ namespace Ordering
                 .Perform(
                     _ => _.CreateOrder(orderId)
                 );
-            Console.WriteLine();
 
+            Console.WriteLine();
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - Trying to add another order on the customer (should fail)"
+            );
+            try
+            {
+                await GetCustomer(customerId)
+                    .Perform(_ =>
+                        _.CreateOrder(Guid.NewGuid())
+                    );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $@"{DateTime.UtcNow} - and it did fail: {ex.Message}"
+                );
+            }
+
+            Console.WriteLine();
             Console.WriteLine($@"{DateTime.UtcNow} - adding kaviar to order");
             await GetCustomer(customerId)
                 .Perform(_ =>
@@ -83,25 +100,34 @@ namespace Ordering
                     $@"{DateTime.UtcNow} - and it did fail: {ex.Message}"
                 );
             }
+
             Console.WriteLine();
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - abandoning the order to start a new one"
+            );
+            await GetCustomer(customerId)
+                .Perform(_ =>
+                    {
+                        _.AbandonOrder(orderId);
+                        _.CreateOrder(Guid.NewGuid());
+                    }
+                );
 
             Console.WriteLine(
                 $@"{DateTime.UtcNow} - starting the client (i.e. letting event handlers run)"
             );
-            _client.Start().Wait();
+            DolitteClient.Start().Wait();
 
             Console.WriteLine(
                 $@"{DateTime.UtcNow} - exit"
             );
         }
 
-        static IAggregateRootOperations<CustomerAggregate> GetCustomer(Guid customerId)
-        {
-            return _client
+        static IAggregateRootOperations<CustomerAggregate> GetCustomer(Guid customerId) =>
+            DolitteClient
                 .AggregateOf<CustomerAggregate>(
                     eventSource: customerId,
                     buildEventStore: eventstore);
-        }
 
         public static IEventStore eventstore(EventStoreBuilder b) => b.ForTenant(TenantId.Development);
     }

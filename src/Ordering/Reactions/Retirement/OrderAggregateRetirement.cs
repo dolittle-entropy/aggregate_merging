@@ -13,7 +13,7 @@ namespace Ordering.Reactions.Retirement
         public Task Handle(OrderAggregateRetired evt, EventContext context)
         {
             Program
-                ._client
+                .DolitteClient
                 .AggregateOf<CustomerAggregate>(evt.CustomerId, Program.eventstore)
                 .Perform(_ =>
                     _.AssumeReponsibilityforOrder(
@@ -32,7 +32,7 @@ namespace Ordering.Reactions.Retirement
             if (evt.OrderId == context.EventSourceId)
             {
                 Program
-                    ._client
+                    .DolitteClient
                     .AggregateOf<OrderAggregate>(evt.OrderId, Program.eventstore)
                     .Perform(_ => _.Retire());
             }
