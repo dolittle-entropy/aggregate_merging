@@ -8,7 +8,6 @@ using Ordering.Events.Orders;
 namespace Ordering.Domain
 {
     [AggregateRoot("F2D6FEE3-E9C7-468F-9419-7F1AA31DA2F5")]
-    [Obsolete("use CustomerAggregate")]
     public class OrderAggregate : AggregateRoot
     {
         Guid _id;
@@ -26,11 +25,14 @@ namespace Ordering.Domain
         [Obsolete("use CustomerAggregate")]
         public OrderAggregate(EventSourceId id) : base(id)
         {
-            throw new RetiredException();
+            _id = id;
         }
 
         public void Retire()
         {
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - RETIRING {_id}"
+            );
             Apply(
                 new OrderAggregateRetired(
                     _id,
