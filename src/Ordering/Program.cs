@@ -1,5 +1,7 @@
 ﻿using System;
 using Dolittle.SDK;
+using Dolittle.SDK.Events.Store;
+using Dolittle.SDK.Events.Store.Builders;
 using Dolittle.SDK.Tenancy;
 using Ordering.Domain;
 using Ordering.Events.Customers;
@@ -7,36 +9,39 @@ using Ordering.Read;
 
 namespace Ordering
 {
-    class Program
+    public class Program
     {
+        public static readonly Guid MicroserviceId = new Guid("24D20B3F-3147-414D-8F99-DE186F6D50A4");
+        public static readonly Guid Tenant = TenantId.Development;
+        public static Client Client { get; private set; }
         static void Main(string[] args)
         {
-            Console.WriteLine($@"{DateTime.UtcNow} - starting the client");
-            var client = Client
-                .ForMicroservice("24D20B3F-3147-414D-8F99-DE186F6D50A4")
+            Console.WriteLine($@"{DateTime.UtcNow} - starting the Client");
+            Client = Client
+                .ForMicroservice(MicroserviceId)
                 .WithEventTypes(_ => _.RegisterAllFrom(typeof(CustomerCreated).Assembly))
                 .WithEventHandlers(_ => _.RegisterAllFrom(typeof(CustomerEventHandler).Assembly))
                 .Build();
 
             Console.WriteLine($@"{DateTime.UtcNow} - creating a customer");
             var customerId = Guid.NewGuid();
-            client
+            Client
                 .AggregateOf<CustomerAggregate>(
                     eventSource: customerId,
-                    buildEventStore: _ => _.ForTenant(TenantId.Development))
+                    buildEventStore: GetEventStore)
                 .Perform(customer =>
                     customer.Create("Adam", "some@test.com")
                 );
             var customerTwoId = Guid.NewGuid();
-            client
+            Client
                 .AggregateOf<CustomerAggregate>(
                     eventSource: customerTwoId,
-                    buildEventStore: _ => _.ForTenant(TenantId.Development))
+                    buildEventStore: GetEventStore)
                 .Perform(customer => customer.Remove());
-            client
+            Client
                 .AggregateOf<CustomerAggregate>(
                     eventSource: customerTwoId,
-                    buildEventStore: _ => _.ForTenant(TenantId.Development))
+                    buildEventStore: GetEventStore)
                 .Perform(customer =>
                     customer.Create("Bob", "other@test.com")
                 );
@@ -44,10 +49,10 @@ namespace Ordering
             Console.WriteLine(
                 $@"{DateTime.UtcNow} - should get an exception when trying to create again"
             );
-            client
+            Client
                 .AggregateOf<CustomerAggregate>(
                     eventSource: customerId,
-                    buildEventStore: _ => _.ForTenant(TenantId.Development))
+                    buildEventStore: GetEventStore)
                 .Perform(customer =>
                     customer.Create("Aaron", "some.other@test.com")
 
@@ -56,13 +61,13 @@ namespace Ordering
             Console.WriteLine(
                 $@"{DateTime.UtcNow} - removing both customers"
             );
-            client
-                .AggregateOf<CustomerAggregate>(customerId, _ => _.ForTenant(TenantId.Development))
+            Client
+                .AggregateOf<CustomerAggregate>(customerId, GetEventStore)
                 .Perform(
                     _ => _.Remove()
                 );
-            client
-                .AggregateOf<CustomerAggregate>(customerTwoId, _ => _.ForTenant(TenantId.Development))
+            Client
+                .AggregateOf<CustomerAggregate>(customerTwoId, GetEventStore)
                 .Perform(
                     _ => _.Remove()
                 );
@@ -70,35 +75,64 @@ namespace Ordering
             var orderId = Guid.NewGuid();
 
             // all of these are now marked as obsolete and will not work
-            client
-                .AggregateOf<OrderAggregate>(orderId, _=> _.ForTenant(TenantId.Development))
+            Client
+                .AggregateOf<OrderAggregate>(orderId, GetEventStore)
                 .Perform(
                     _ => _.Create(customerId)
                 );
-            client
-                .AggregateOf<OrderAggregate>(orderId, _=> _.ForTenant(TenantId.Development))
+            Client
+                .AggregateOf<OrderAggregate>(orderId, GetEventStore)
                 .Perform(
                     _ => _.AddItem(Guid.NewGuid(), "kaviar", 13)
                 );
-            client
-                .AggregateOf<OrderAggregate>(orderId, _=> _.ForTenant(TenantId.Development))
+            Client
+                .AggregateOf<OrderAggregate>(orderId, GetEventStore)
                 .Perform(
                     _ => _.AddItem(Guid.NewGuid(), "ost", 44)
                 );
-            client
-                .AggregateOf<OrderAggregate>(orderId, _=> _.ForTenant(TenantId.Development))
+            Client
+                .AggregateOf<OrderAggregate>(orderId, GetEventStore)
                 .Perform(
                     _ => _.RemoveItem(Guid.NewGuid())
                 );
 
+            var firstOrderId = Guid.NewGuid();
             Console.WriteLine(
-                $@"{DateTime.UtcNow} - starting the client (i.e. letting event handlers run)"
+                $@"{DateTime.UtcNow} - Creating order {firstOrderId} on customer {customerId}"
             );
-            client.Start().Wait();
+            Client
+                .AggregateOf<CustomerAggregate>(customerId, GetEventStore)
+                .Perform(
+                    _ => _.CreateOrder(firstOrderId)
+                );
+
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - Adding a pølse to the order on the customer"
+            );
+            Client
+                .AggregateOf<CustomerAggregate>(customerId, GetEventStore)
+                .Perform(
+                    _ => _.AddItemToOrder(
+                        orderId: firstOrderId,
+                        productId: Guid.NewGuid(),
+                        productName: "pølse",
+                        price: 42)
+                );
+
+
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - starting the Client (i.e. letting event handlers run)"
+            );
+            Client.Start().Wait();
 
             Console.WriteLine(
                 $@"{DateTime.UtcNow} - exit"
             );
+        }
+
+        public static IEventStore GetEventStore(EventStoreBuilder builder)
+        {
+            return builder.ForTenant(Tenant);
         }
     }
 }
