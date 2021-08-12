@@ -80,6 +80,9 @@ namespace Ordering.Domain
             bool abandoned
         )
         {
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - CUSTOMER {_id} ASSUMING RESPONSIBLITY FOR {orderId}"
+            );
             if (!_created)
             {
                 // possibly stop? this is a result of no previous check for existing customer
@@ -116,6 +119,9 @@ namespace Ordering.Domain
 
         public void AddItemToOrder(Guid orderId, Guid productId, string productName, decimal price)
         {
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - customer aggregate adding item to order"
+            );
             Apply(
                 GetOrder(orderId).AddItem(productId, productName, price)
             );
@@ -130,9 +136,11 @@ namespace Ordering.Domain
 
         public void CreateOrder(Guid orderId)
         {
-            Apply(
-                GetOrder(orderId).Cancel()
+            Console.WriteLine(
+                $@"{DateTime.UtcNow} - customer aggregate {_id} creating order {orderId}"
             );
+            var orderState = new OrderState(orderId);
+            Apply(orderState.Create(_id));
         }
 
         public void PlaceOrder(Guid orderId)
@@ -153,6 +161,9 @@ namespace Ordering.Domain
         {
             if (!_orders.ContainsKey(orderId))
             {
+                Console.WriteLine(
+                    $@"{DateTime.UtcNow} - Order {orderId} does not exist on customer {_id}"
+                );
                 throw new Exception("customer does not have that order");
             }
             return _orders[orderId];
@@ -181,7 +192,9 @@ namespace Ordering.Domain
 
          void On(OrderCreated evt)
         {
-            GetOrder(evt.OrderId).On(evt);
+            var orderState = new OrderState(evt.OrderId);
+            orderState.On(evt);
+            _orders[evt.OrderId] = orderState;
         }
 
         void On(ItemAddedToOrder evt)
