@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Dolittle.SDK.Aggregates;
 using Dolittle.SDK.Events;
 using Ordering.Events.Orders;
@@ -8,6 +7,7 @@ using Ordering.Events.Orders;
 namespace Ordering.Domain
 {
     [AggregateRoot("F2D6FEE3-E9C7-468F-9419-7F1AA31DA2F5")]
+    [Obsolete("use CustomerAggregate")]
     public class OrderAggregate : AggregateRoot
     {
         Guid _id;
@@ -20,135 +20,67 @@ namespace Ordering.Domain
         bool _cancelled;
         bool _abandoned;
 
+        bool _retired;
 
+        [Obsolete("use CustomerAggregate")]
         public OrderAggregate(EventSourceId id) : base(id)
         {
-            _id = id;
+            throw new RetiredException();
         }
 
+        public void Retire()
+        {
+            Apply(
+                new OrderAggregateRetired(
+                    _id,
+                    _customerId,
+                    _items,
+                    _created,
+                    _placed,
+                    _cancelled,
+                    _abandoned
+                )
+            );
+        }
+
+        [Obsolete("use CustomerAggregate.CreateOrder")]
         public void Create(Guid customerId)
         {
-            if (_created)
-            {
-                throw new Exception("Already created order");
-            }
-
-            Apply(
-                new OrderCreated(
-                    orderId: _id,
-                    customerId: customerId
-                )
-            );
+            throw new RetiredException();
         }
 
+        [Obsolete("use CustomerAggregate.AddItemToOrder")]
         public void AddItem(Guid productId, string productName, decimal price)
         {
-            if (!_created)
-            {
-                throw new Exception("cannot add item to order that does not exist");
-            }
-
-            if (_placed)
-            {
-                throw new Exception("cannot add item to order after placing the order");
-            }
-
-            if (_abandoned)
-            {
-                throw new Exception("cannot add items to an abandoned order");
-            }
-
-            Console.WriteLine(
-                $@"{DateTime.UtcNow} - order {_id} adding item {productId} {productName}"
-            );
-
-            Apply(
-                new ItemAddedToOrder(
-                    orderId: _id,
-                    customerId: _customerId,
-                    productId: productId,
-                    productName: productName,
-                    price: price
-                )
-            );
+            throw new RetiredException();
         }
 
+        [Obsolete("use CustomerAggregate.RemoveItemFromOrder")]
         public void RemoveItem(Guid productId)
         {
-            if (_placed)
-            {
-                throw new Exception("cannot remove item from order after placing the order");
-            }
-
-            if (!_items.Contains(productId))
-            {
-                throw new Exception("cannot remove item that is not on the order");
-            }
-
-            Console.WriteLine(
-                $@"{DateTime.UtcNow} - order {_id} removing item {productId}"
-            );
-
-            Apply(
-                new ItemRemovedFromOrder(
-                    orderId: _id,
-                    customerId: _customerId,
-                    productId: productId
-                )
-            );
+            throw new RetiredException();
         }
 
+        [Obsolete("use CustomerAggregate.PlaceOrder")]
         public void Place()
         {
-            if (!_items.Any())
-            {
-                throw new Exception("cannot place empty order");
-            }
-
-            if (_placed)
-            {
-                throw new Exception("cannot place an order again");
-            }
-
-            Apply(
-                new OrderPlaced(
-                    orderId: _id,
-                    customerId: _customerId
-                )
-            );
+            throw new RetiredException();
         }
 
+        [Obsolete("use CustomerAggregate.CancelOrder")]
         public void Cancel()
         {
-            if (!_placed)
-            {
-                throw new Exception("cannot cancel order before placing - abandon it instead");
-            }
-
-            Apply(
-                new OrderCancelled(
-                    orderId: _id,
-                    customerId: _customerId
-                )
-            );
+            throw new RetiredException();
         }
+        [Obsolete("use CustomerAggregate.AbandonOrder")]
         public void Abandon()
         {
-            if (!_created)
-            {
-                throw new Exception("cannot abandon non-existing order");
-            }
-            if (_placed)
-            {
-                throw new Exception("cannot abandon order after placing - cancel it instead");
-            }
+            throw new RetiredException();
+        }
 
-            Apply(
-                new OrderAbandoned(
-                    orderId: _id,
-                    customerId: _customerId
-                )
-            );
+        void On(OrderAggregateRetired evt)
+        {
+            _retired = true;
         }
 
         void On(OrderCreated evt)

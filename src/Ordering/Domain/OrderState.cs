@@ -20,8 +20,7 @@ namespace Ordering.Domain
 
         bool _retired;
 
-
-        public OrderState(EventSourceId id)
+        public OrderState(Guid id)
         {
             _id = id;
         }
