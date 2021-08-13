@@ -44,9 +44,9 @@ namespace Ordering.Domain
 
             Apply(
                 new CustomerCreated(
-                    customerId: _id,
-                    name: name,
-                    email: email
+                    CustomerId: _id,
+                    Name: name,
+                    Email: email
                 )
             );
         }
@@ -70,7 +70,7 @@ namespace Ordering.Domain
             );
             Apply(
                 new CustomerRemoved(
-                    customerId: _id
+                    CustomerId: _id
                 )
             );
         }

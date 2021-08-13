@@ -32,8 +32,8 @@ namespace Ordering.Domain
             }
 
             return new OrderCreated(
-                orderId: _id,
-                customerId: customerId
+                OrderId: _id,
+                CustomerId: customerId
             );
         }
 
@@ -59,11 +59,11 @@ namespace Ordering.Domain
             );
 
             return new ItemAddedToOrder(
-                orderId: _id,
-                customerId: _customerId,
-                productId: productId,
-                productName: productName,
-                price: price
+                OrderId: _id,
+                CustomerId: _customerId,
+                ProductId: productId,
+                ProductName: productName,
+                Price: price
             );
         }
 
@@ -84,9 +84,9 @@ namespace Ordering.Domain
             );
 
             return new ItemRemovedFromOrder(
-                orderId: _id,
-                customerId: _customerId,
-                productId: productId
+                OrderId: _id,
+                CustomerId: _customerId,
+                ProductId: productId
             );
         }
 
@@ -103,8 +103,8 @@ namespace Ordering.Domain
             }
 
             return new OrderPlaced(
-                orderId: _id,
-                customerId: _customerId
+                OrderId: _id,
+                CustomerId: _customerId
             );
         }
 
@@ -116,8 +116,8 @@ namespace Ordering.Domain
             }
 
             return new OrderCancelled(
-                orderId: _id,
-                customerId: _customerId
+                OrderId: _id,
+                CustomerId: _customerId
             );
         }
         public OrderAbandoned Abandon()
@@ -132,8 +132,8 @@ namespace Ordering.Domain
             }
 
             return new OrderAbandoned(
-                orderId: _id,
-                customerId: _customerId
+                OrderId: _id,
+                CustomerId: _customerId
             );
         }
 

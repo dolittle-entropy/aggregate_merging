@@ -31,13 +31,13 @@ namespace Ordering.Domain
         {
             Apply(
                 new OrderAggregateRetired(
-                    orderId: _id,
-                    customerId: _customerId,
-                    items: _items,
-                    created: _created,
-                    placed: _placed,
-                    cancelled: _cancelled,
-                    abandoned: _abandoned
+                    OrderId: _id,
+                    CustomerId: _customerId,
+                    Items: _items,
+                    Created: _created,
+                    Placed: _placed,
+                    Cancelled: _cancelled,
+                    Abandoned: _abandoned
                 )
             );
         }
