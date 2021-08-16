@@ -4,6 +4,10 @@ As we learn and evolve our system we sometimes need to move the responsibilities
 
 This article explains how to do that in a consistent, event-sourced manner.
 
+## Summary (TL;DR)
+
+By explictly retiring an aggregate-root and storing its state when retiring we can seemlesely assume its responsibilities in another aggregate-root. This is done by making the change explicity with events.
+
 ## The aggregate roots protect the data-invariant
 
 In a system that uses the aggregate-root -pattern there are entities in our domain that protect the "data-invariant". These "aggregate-roots" (sometimes just called aggregates) are the single points of acces. All changes to the system happens through them.
@@ -80,6 +84,3 @@ We now have a system with only one aggregate-root - the customer. The customer h
 
 The wrinkle here is that the existing system may be in a state inconsistent with the defined data-invariant. In other words, we may have orders without customers, or customers with many placeable orders. It is up to us to now decide how to handle these inconsistencies. But that is a topic for another time.
 
-## Summary
-
-By explictly retiring an aggregate-root and storing its state when retiring we can seemlesely assume its responsibilities in another aggregate-root. This is done by introducing two new events and two reactions.
