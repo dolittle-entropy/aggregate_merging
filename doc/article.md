@@ -74,11 +74,17 @@ This gives the order- and customer -aggregate-roots the ability to transfer resp
 
 We make a reaction in our system that handles the existing order-created event by telling that order -aggregate-root to retire. If we need a staged-rollout this is where you do it (i.e. only retire for certain customers, to verify that everything works. This causes the order -aggregate-roots to retire and emit their state as an event.
 
-Finally we make a reaction to this "retired" -event. We get the correct customer -aggregate-root (this id should be on the order-state) and tell it to assume responsibility for the order. As the "retired" -event contains the whole internal state of the order -aggregate-root when it retired we have all the data to give to the customer -aggregate-root.
+Finally we make a reaction to this "retired" -event. We get the correct customer -aggregate-root (this id should be on the order-state, see below) and tell it to assume responsibility for the order. As the "retired" -event contains the whole internal state of the order -aggregate-root when it retired we have all the data to give to the customer -aggregate-root.
 
 We end up with a remnant of the order -aggregate-root which only contains the `.Retire()` -method and its internal handling to set state. The customer-aggregate-root expands to cover everything an order could on its order(s). It can also assume responsibility for retiring order-aggregate-roots.
 
 Once all the order -aggregate-roots have retired the order -aggregate-root -class can go away. We can also remove the method to asume responsibility on the customer -aggregate-root.
+
+### My old aggregate didn't have the state to move to my new aggregate
+
+You might be moving from one aggregate-root to another which you do not know the id of. In our example that would mean that the order -aggregate-root did not store the customer-id in its internal state. Sometimes you will have that information on the stored events that replay, and you can simply add it to the internal state of your aggregate-root and make it part of the state it leaves behind when retiring.
+
+If this is not possible you might need to look it up in the reaction - using data from the state of the retiring aggregate-root to look up other information in the system.
 
 ### Final state
 
