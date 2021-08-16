@@ -12,7 +12,7 @@ namespace Ordering.Reactions.Retirement
     {
         public Task Handle(OrderCreated evt, EventContext context)
         {
-            if (CreateComesFromAnOrderAggregateRoot(evt.OrderId == context.EventSourceId))
+            if (CreateComesFromAnOrderAggregateRoot(evt.OrderId, context.EventSourceId))
             {
                 Program
                     .DolitteClient
