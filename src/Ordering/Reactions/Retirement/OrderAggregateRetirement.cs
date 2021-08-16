@@ -10,6 +10,24 @@ namespace Ordering.Reactions.Retirement
     [EventHandler("F37A044A-4D43-46AD-9D8D-C2DDC3AD253F")]
     public class OrderAggregateRetirement
     {
+        public Task Handle(OrderCreated evt, EventContext context)
+        {
+            if (CreateComesFromAnOrderAggregateRoot(evt.OrderId == context.EventSourceId))
+            {
+                Program
+                    .DolitteClient
+                    .AggregateOf<OrderAggregate>(evt.OrderId, Program.eventstore)
+                    .Perform(_ => _.Retire());
+            }
+
+            return Task.CompletedTask;
+        }
+
+        bool CreateComesFromAnOrderAggregateRoot(OrderCreated evt, EventContext context)
+        {
+            return evt.OrderId == context.EventSourceId;
+        }
+
         public Task Handle(OrderAggregateRetired evt, EventContext context)
         {
             Program
@@ -24,19 +42,6 @@ namespace Ordering.Reactions.Retirement
                         cancelled: evt.Cancelled,
                         abandoned: evt.Abandoned)
                     );
-            return Task.CompletedTask;
-        }
-
-        public Task Handle(OrderCreated evt, EventContext context)
-        {
-            if (evt.OrderId == context.EventSourceId)
-            {
-                Program
-                    .DolitteClient
-                    .AggregateOf<OrderAggregate>(evt.OrderId, Program.eventstore)
-                    .Perform(_ => _.Retire());
-            }
-
             return Task.CompletedTask;
         }
     }
