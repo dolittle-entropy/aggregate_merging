@@ -14,6 +14,8 @@ In a system that uses the aggregate-root -pattern there are entities in our doma
 
 The aggregate is the gate-keeper, it verifies that the changes to the system are valid and legal. We say that "the aggregate-root protects the data-invariant". By this we mean that the aggregate makes sure the system cannot end up in an invalid state, by applying its business rules and rejecting invalid calls.
 
+
+
 ## All state changes are events
 
 Some systems store state directly, others are event-sourced. The difference is that event-sourced systems store changes as a sequence of events, instead of storing the "current state" as a snapshot.
@@ -48,9 +50,9 @@ We can not protect this data-invariant with the order -aggregate-root. It has no
 
 We must change the system by moving the orders onto the customer -aggregate-root. When the customer -aggregate-root manages the orders it can make sure that an order belongs to a customer. In fact - creating an order without a customer becomes impossible. It can also make sure that a customer has only one active order at the same time.
 
-It is a simple thing to move the functionality of the order-aggregate-root into the customer. One way is to make the current order-aggregate-root into an internal object within the customer, and route all changes to the order through the customer. The order is no longer an aggregate-root and is inaccessible from the outside.
+It is a simple thing to move the functionality of the order-aggregate-root into the customer. One way is to make the current order -aggregate-root into an internal object within the customer, and route all changes to the order through the customer. The order is no longer an aggregate-root and is inaccessible from the outside.
 
-This allows the customer-aggregate-root to protect the full data-invariant. All existing validation on the order keeps working as the customer -aggregate-root delegates to the order. The customer aggregate-root grows, but it by delegating to the order.
+This allows the customer-aggregate-root to protect the full data-invariant. All existing validation on the order keeps working as the customer -aggregate-root delegates to the order. The customer aggregate-root grows, but it gains abilities by delegating to the order.
 
 ### Dealing with existing orders
 
@@ -58,23 +60,23 @@ There is a problem, however: there are already orders in the system created by t
 
 To protect the invariant on existing orders we need some way of getting the data from the old events in the order -aggregate-root's stream into the customer -aggregate-root.
 
-A way of doing this is to make the transfer of responsibility between the aggregate-roots explicit as events in the system. Remember that in an event-based system all state-changes happen through events.
+To transfer responsibility between the aggregate-roots we make the transfer into explicit as events in the system. Remember that in an event-based system all state-changes happen through events.
 
-Let us make two new events to support this transition: an event from the order-aggregate-root announcing that it has retired (relinquished responsibility), and an event from the customer-aggregate-root marking that it has assumed the responsibility.
+We make two new events to support this transition: an event from the order -aggregate-root announcing that it has retired (relinquished responsibility), and an event from the customer -aggregate-root marking that it has assumed the responsibility.
 
-We give the order -aggregate-root a new method, .Retire() which summarizes its internal state and applies that as the "I have retired" -event. Next we give the customer -aggregate-root a new method, .AssumeOrderResponsibility(orderId, ...) which accepts the state of the order as arguments, and applies that as the "I have assumed responsibility for this order" -event.
+We give the order -aggregate-root a new method, `.Retire()` which summarizes its internal state and applies that as the "I have retired" -event. Next we give the customer -aggregate-root a new method, `.AssumeOrderResponsibilityFor(orderId, {state})` which accepts the state of the order as arguments, and applies that as the "I have assumed responsibility for this order" -event.
 
 When the customer -aggregate-root rehydrates and gets one of these "assume responsibility" -events it sets the state of that order in it's internals.
 
 ### Actually transferring the responsibility
 
-All of this only gives the order- and customer -aggregate-roots the ability to transfer responsibility. Now we need to actually transfer the data.
+This gives the order- and customer -aggregate-roots the ability to transfer responsibility. Now we need to actually transfer the data.
 
-We make a reaction in our system that handles the existing order-created event by telling that order-aggregate-root to retire. If we need a staged-rollout this is where you do it (i.e. only retire for certain customers, to verify that everything works. This causes the order-aggregate-roots to retire and emit their state as an event.
+We make a reaction in our system that handles the existing order-created event by telling that order -aggregate-root to retire. If we need a staged-rollout this is where you do it (i.e. only retire for certain customers, to verify that everything works. This causes the order -aggregate-roots to retire and emit their state as an event.
 
 Finally we make a reaction to this "retired" -event. We get the correct customer -aggregate-root (this id should be on the order-state) and tell it to assume responsibility for the order. As the "retired" -event contains the whole internal state of the order -aggregate-root when it retired we have all the data to give to the customer -aggregate-root.
 
-We end up with a remnant of the order -aggregate-root which only contains the .Retire() -method and its internal handling to set state. The customer-aggregate-root expands to cover everything an order could on its order(s). It can also assume responsibility for retiring order-aggregate-roots.
+We end up with a remnant of the order -aggregate-root which only contains the `.Retire()` -method and its internal handling to set state. The customer-aggregate-root expands to cover everything an order could on its order(s). It can also assume responsibility for retiring order-aggregate-roots.
 
 Once all the order -aggregate-roots have retired the order -aggregate-root -class can go away. We can also remove the method to asume responsibility on the customer -aggregate-root.
 
@@ -82,5 +84,7 @@ Once all the order -aggregate-roots have retired the order -aggregate-root -clas
 
 We now have a system with only one aggregate-root - the customer. The customer has all the information it needs to protect the data-invariant, and no data about old orders was lost.
 
-The wrinkle here is that the existing system may be in a state inconsistent with the defined data-invariant. In other words, we may have orders without customers, or customers with many placeable orders. It is up to us to now decide how to handle these inconsistencies. But that is a topic for another time.
+The wrinkle here is that the existing system may be in a state inconsistent with the defined data-invariant. In other words, we may have orders without customers, or customers with many placeable orders. It is up to us to now decide how to handle these inconsistencies.
+
+But that is a topic for another time.
 
