@@ -1,52 +1,85 @@
-# Merging Aggregate-Roots
+# Merging aggregate-roots
 
-As we learn and evolve our system we might need to bring the responsibilities of one aggregate-root into another aggregate-root. This article explains how to do that in a consistent, event-sourced manner.
-## Aggregate roots protect the data-invariant
-In a systems that use the "Aggregate-Root" -pattern we have entities in our domain that protect the "data-invariant". These aggregate-roots (or aggregates, in short) are the single accessible point and all changes to the system happens through them. This puts the aggregate in a gate-keeping position, in that it can verify that the actions it is called on to perform are valid and legal according to its business-rules. We say that "the aggregate-root protects the data-invariant". By that we mean that the aggregate makes sure the system can not end up in an invalid state, by applying its business rules and rejecting invalid calls.
+As we learn and evolve our system we sometimes need to move the responsibilities of one aggregate-root into another.
 
-## All state change is carried by events
-Some systems store state directly, while others are event-sourced. The difference is that event-sourced systems store each change made to the state of the system, instead of storing the "current state". Dolittle is an event-sourced system, and as such our aggregate-roots get their internal state from a stream of events. In an aggregate-based system all the changes that affect an aggregate-root also come from that aggregate. The aggregate-root is the source of all its own internal state, and protects the data-invariant of this internal state before emitting events that change it.
+This article explains how to do that in a consistent, event-sourced manner.
 
-This means that when a change should happen in the system an aggregate must be made (as they are the sources of change). For this aggregate to protect the data-invariant it needs to know the current state of the system. It gets to know this current state by running through all the events that it has emitted, to set its internal state. After such a run-through the internal state of the aggregate is the true state of the system. All changes to the system happen through events and all the events that change the state the aggregate protects come from that aggregate - thus it is its own microcosm and can fully protect its internal consistency.
+## The aggregate roots protect the data-invariant
+
+In a system that uses the aggregate-root -pattern there are entities in our domain that protect the "data-invariant". These "aggregate-roots" (sometimes just called aggregates) are the single points of acces. All changes to the system happens through them.
+
+The aggregate is the gate-keeper, it verifies that the changes to the system are valid and legal. We say that "the aggregate-root protects the data-invariant". By this we mean that the aggregate makes sure the system cannot end up in an invalid state, by applying its business rules and rejecting invalid calls.
+
+## All state changes are events
+
+Some systems store state directly, others are event-sourced. The difference is that event-sourced systems store changes as a sequence of events, instead of storing the "current state" as a snapshot.
+
+Dolittle is an event-sourced system, and as such our aggregate-roots get their internal state from a stream of events. In an aggregate-based system all the changes that affect an aggregate-root must also come from that aggregate. Otherwise the aggregate would not be able to protect the invariant. The aggregate-root is the source of events that set its internal state, and it protects the data-invariant before emitting events that change it this state. The aggregate-root is the event-source and the final arbiter of whether something can happen.
+
+This means that when change should happen in the system it must go through an aggregate. For this aggregate to protect the data-invariant it needs to know the current state of the system. It gets to know this current state by running through all the events that it has emitted. These events set its internal state.
+
+After such a run-through the internal state of the aggregate is the true state of the system. The aggregate is its own microcosm and can fully protect its internal consistency. For this reason an aggregate-root is a good candidate for a micro-service.
 
 ## Things change
-This is all well and good in a perfect world with perfect knowledge and no mistakes, but software development is the practice of learning and change. As we live with a system we discover new things about it, and truths that seemed evident turn out to have changed or actually never been true. This is the normal thing, and the good thing - we should discover new things and learn about the system. The system can and should change. Sometimes we have to change important parts of our system, like how we protect the data-invariant. That might be because we got the data-invariant wrong, or even because it changes over time.
 
-## Example
-We have created a system for ordering products with two aggregate-roots. One is the customer-aggregate-root, which handles the creation and removal of customers. It has the invariant that a customer must be in a non-created state to be created and must be created in order to be removed.
+Software development is the process of learning and change. We discover new things about our system. Often things that seemed evident turn out to be wrong, or to change over time. This is normal and a good thing - we should discover new things and learn about our system. The system can and should change.
 
-The order-aggregate-root is more complex and handles that an order must be created, before it can be abandoned, placed or have items added to it. It must have an item added to it before that item can be removed. It must have something on it and not be abandoned in order to be placed, and no items can be added or removed on it after it is placed or abandoned.
+We need the ability to adapt even the most basic parts of our system, like how we protect the data-invariant. We might have gotten the data-invariant wrong. Our understanding might have been correct but we discover that it no longer is.
 
-This is the state at of the system, and all is well.
+## Example: an ordering system
 
-### A new requirement
-A new requirement is discovered: an order should not be placed by a customer that does not exist. And another one: a customer should not have two orders that can be placed at the same time.
+Let us consider a system for ordering products. We have two aggregate-roots.
 
-To protect these new invariants of the system we can not use the order-aggregate-root. It has no concept of the customer, outside of an id that happens to go on the order. It does not know if the customer exists or not. Further, as each instance of the order-aggregate-root is an order and knows nothing about any other orders it cannot check whether a customer has any other orders she can place.
+One is the customer -aggregate-root, which handles the creation and removal of customers. It has the invariant that a customer must be in a non-created state to be created and must be created in order to be removed.
+
+The other, order -aggregate-root is more complex. An order must be created before it can be abandoned, placed or have items added to it. It must have an item added to it before that item can be removed. It must have something on it and not be abandoned in order to be placed, and no items can be added or removed on it after it is placed or abandoned.
+
+### New needs
+
+We discover two new needs: orders should always belong to a customer that exists. And a customer should not have two placeable orders at the same time. Remember that a placeable order is one that exists, is not abandoned and has items on it.
+
+We can not protect this data-invariant with the order -aggregate-root. It has no concept of the customer, outside of an id that happens to go on the order. It does not know if that customer exists or not. Further, as each instance of the order -aggregate-root is separate it does not know about other orders. Thus it cannot check whether a customer has other orders she can place.
 
 ### Moving responsibility
 
-To fulfill these new requirements we have to change the system, and we have to do it by placing the orders onto the customer. If the customer owns and knows about the orders it can easily make sure that an order is created on a customer, and it can make sure that it has no more than one active order at the same time.
+We must change the system by moving the orders onto the customer -aggregate-root. When the customer -aggregate-root manages the orders it can make sure that an order belongs to a customer. In fact - creating an order without a customer becomes impossible. It can also make sure that a customer has only one active order at the same time.
 
-It is a relatively simple thing to move the functionality of the order-aggregate-root into the customer. One way is to make the current order-aggregate-root into an internal object within the customer and route all changes to the order through the customre. The order is no longer an aggregate-root and is inaccessible to the outside, allowing the customer-aggregate-root to protect the data-invariant. All the existing data-invariants on the order are well protected by the customer-aggregate-root delegating to the order, failing when it usually would.
+It is a simple thing to move the functionality of the order-aggregate-root into the customer. One way is to make the current order-aggregate-root into an internal object within the customer, and route all changes to the order through the customer. The order is no longer an aggregate-root and is inaccessible from the outside.
+
+This allows the customer-aggregate-root to protect the full data-invariant. All existing validation on the order keeps working as the customer -aggregate-root delegates to the order. The customer aggregate-root grows, but it by delegating to the order.
 
 ### Dealing with existing orders
 
-There is a problem, however: there are already orders in the system created by the old order-aggregate-root. These orders exist as events, and these events will not be replayed when the customer-aggregate-root that has assumed control of the order gets rehydrated. This is because those events did not come from the customer-aggregate-root originally and should have no effect on its internal state.
+There is a problem, however: there are already orders in the system created by the old order-aggregate-root. These orders exist as events on the old order aggregate-root's stream. These events will not replay when the customer -aggregate-root (that has assumed control of the order) gets rehydrated! This is because those events did not originally come from the customer -aggregate-root. Thus the system believes they should have no effect on its internal state.
 
-To protect the invariant on existing orders we need some way of getting the data from existing events from the order-aggregate-root into the customer-aggregate-root.
+To protect the invariant on existing orders we need some way of getting the data from the old events in the order -aggregate-root's stream into the customer -aggregate-root.
 
-A way of doing this is to make the transfer of responsibility between the aggregate-roots explicit as events in the system. Remember that in an event-based system all state-changes must happen through events. We introduce two new events to support this transition: an event from the order-aggregate-root that it has retired (or relinquished some responsibility), and an event from the customer-aggregate-root that it has assumed the responsibility.
+A way of doing this is to make the transfer of responsibility between the aggregate-roots explicit as events in the system. Remember that in an event-based system all state-changes happen through events.
 
-We give the order-aggregate-root a new method, `.Retire()` which summarizes its internal state and applies that as the "I have retired" -event. Next we give the customer-aggregate-root a new method, `.AssumeOrderResponsibility(orderId, ...)` which accepts the state from the order as arguments, and applies that as the "I have assumed responsibility for this order" -event.
+Let us make two new events to support this transition: an event from the order-aggregate-root announcing that it has retired (relinquished responsibility), and an event from the customer-aggregate-root marking that it has assumed the responsibility.
+
+We give the order -aggregate-root a new method, .Retire() which summarizes its internal state and applies that as the "I have retired" -event. Next we give the customer -aggregate-root a new method, .AssumeOrderResponsibility(orderId, ...) which accepts the state of the order as arguments, and applies that as the "I have assumed responsibility for this order" -event.
+
+When the customer -aggregate-root rehydrates and gets one of these "assume responsibility" -events it sets the state of that order in it's internals.
 
 ### Actually transferring the responsibility
 
-Next we make a reaction in our system that handles the existing order-created event by telling that order-aggregate-root to retire. If some sort of staged-rollout is required this is where you do it (i.e. only retire for certain customers, to verify that it works. This causes  the order-aggregate-roots to retire and emit their state as an event. We make a reaction to that event which gets the correct customer-aggregate-root (this should be on the order-state) and tells that customer to assume responsibility for that order.
+All of this only gives the order- and customer -aggregate-roots the ability to transfer responsibility. Now we need to actually transfer the data.
 
-We end up with the remnant of the order-aggregate-root which only contains the `.Retire()` -method and its internal handling to set state, and an expanded customer-aggregate-root which can do everything an order could on its order(s) and can also assume responsibility for retiring order-aggregate-roots.
+We make a reaction in our system that handles the existing order-created event by telling that order-aggregate-root to retire. If we need a staged-rollout this is where you do it (i.e. only retire for certain customers, to verify that everything works. This causes the order-aggregate-roots to retire and emit their state as an event.
 
-Once all the order-aggregate-roots have been retired the order-aggregate-root -class can be removed, and the method to asuume responsibility for a retiring order-aggregate root on the customer-aggregate-root can be removed.
+Finally we make a reaction to this "retired" -event. We get the correct customer -aggregate-root (this id should be on the order-state) and tell it to assume responsibility for the order. As the "retired" -event contains the whole internal state of the order -aggregate-root when it retired we have all the data to give to the customer -aggregate-root.
 
+We end up with a remnant of the order -aggregate-root which only contains the .Retire() -method and its internal handling to set state. The customer-aggregate-root expands to cover everything an order could on its order(s). It can also assume responsibility for retiring order-aggregate-roots.
 
+Once all the order -aggregate-roots have retired the order -aggregate-root -class can go away. We can also remove the method to asume responsibility on the customer -aggregate-root.
 
+### Final state
+
+We now have a system with only one aggregate-root - the customer. The customer has all the information it needs to protect the data-invariant, and no data about old orders was lost.
+
+The wrinkle here is that the existing system may be in a state inconsistent with the defined data-invariant. In other words, we may have orders without customers, or customers with many placeable orders. It is up to us to now decide how to handle these inconsistencies. But that is a topic for another time.
+
+## Summary
+
+By explictly retiring an aggregate-root and storing its state when retiring we can seemlesely assume its responsibilities in another aggregate-root. This is done by introducing two new events and two reactions.
